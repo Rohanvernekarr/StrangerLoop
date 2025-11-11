@@ -33,15 +33,21 @@ export default function VideoChat() {
 
     const initMedia = async () => {
       // Connect socket first, regardless of media access
+      console.log('Attempting to connect to socket server...');
       socket.connect();
       
       socket.on('connect', () => {
-        console.log('Socket connected:', socket.id);
+        console.log('Socket connected successfully:', socket.id);
         setIsConnected(true);
       });
       
+      socket.on('connect_error', (error) => {
+        console.error('Socket connection failed:', error);
+        setIsConnected(false);
+      });
+      
       socket.on('disconnect', () => {
-        console.log('Socket disconnected');
+        console.log('🔌 Socket disconnected');
         setIsConnected(false);
       });
 
@@ -304,11 +310,23 @@ export default function VideoChat() {
   };
 
   const findMatch = () => {
-    console.log('Find Match clicked, socket connected:', socketRef.current.connected);
+    console.log(' Find Match clicked');
+    console.log('Socket status:', {
+      connected: socketRef.current.connected,
+      id: socketRef.current.id,
+      disconnected: socketRef.current.disconnected
+    });
+    
+    if (!socketRef.current.connected) {
+      console.error('Socket not connected! Attempting to reconnect...');
+      socketRef.current.connect();
+      return;
+    }
+    
     closePeerConnection();
     setMessages([]);
     setPartnerId(null);
-    setIsWaiting(false);
+    setIsWaiting(true);
     socketRef.current.emit('find-match');
     console.log('find-match event emitted');
   };

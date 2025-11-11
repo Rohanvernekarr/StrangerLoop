@@ -56,9 +56,9 @@ export default function VideoChat() {
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
         }
-        console.log('✅ Media access granted:', stream.getTracks().map(t => `${t.kind}:${t.enabled}`));
+        console.log('Media access granted:', stream.getTracks().map(t => `${t.kind}:${t.enabled}`));
       } catch (error) {
-        console.log('⚠️ Media access denied, creating dummy video stream');
+        console.log('Media access denied, creating dummy video stream');
         
         // Create a canvas-based dummy video stream for testing
         try {
@@ -69,12 +69,12 @@ export default function VideoChat() {
           
           // Draw a simple pattern
           if (ctx) {
-            ctx.fillStyle = '#4F46E5';
+            
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = 'white';
             ctx.font = '48px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText('Camera Off', canvas.width/2, canvas.height/2);
+            ctx.fillText('No Camera', canvas.width/2, canvas.height/2);
           }
           
           const dummyStream = canvas.captureStream(30);
@@ -84,9 +84,9 @@ export default function VideoChat() {
             localVideoRef.current.srcObject = dummyStream;
           }
           
-          console.log('✅ Dummy video stream created:', dummyStream.getTracks().map(t => t.kind));
+          console.log('Dummy video stream created:', dummyStream.getTracks().map(t => t.kind));
         } catch (dummyError) {
-          console.error('❌ Failed to create dummy stream:', dummyError);
+          console.error('Failed to create dummy stream:', dummyError);
           localStreamRef.current = null;
         }
       }
@@ -96,13 +96,13 @@ export default function VideoChat() {
 
     // Socket event listeners
     socket.on('waiting', () => {
-      console.log('⏳ Waiting for match...');
+      console.log('Waiting for match...');
       setIsWaiting(true);
       setPartnerId(null);
     });
 
     socket.on('match-found', ({ partnerId: newPartnerId, shouldInitiate }) => {
-      console.log('🎉 Match found:', newPartnerId, 'Should initiate:', shouldInitiate);
+      console.log(' Match found:', newPartnerId, 'Should initiate:', shouldInitiate);
       setIsWaiting(false);
       setPartnerId(newPartnerId);
       createPeerConnection(newPartnerId, shouldInitiate);
@@ -210,13 +210,13 @@ export default function VideoChat() {
 
       // Add local stream tracks
       if (localStreamRef.current) {
-        console.log('📤 Adding local tracks to peer connection:');
+        console.log('Adding local tracks to peer connection:');
         localStreamRef.current.getTracks().forEach(track => {
           console.log(`  - ${track.kind}: ${track.enabled ? 'enabled' : 'disabled'}`);
           peerConnection.addTrack(track, localStreamRef.current!);
         });
       } else {
-        console.log('⚠️ No local stream available to add to peer connection');
+        console.log('No local stream available to add to peer connection');
       }
 
       // Handle incoming tracks
@@ -237,16 +237,16 @@ export default function VideoChat() {
             }
           }, 100);
           
-          console.log('✅ Remote video element updated');
+          console.log(' Remote video element updated');
         } else {
-          console.error('❌ No remote video element or stream');
+          console.error(' No remote video element or stream');
         }
       };
 
       // Handle ICE candidates
       peerConnection.onicecandidate = (event) => {
         if (event.candidate) {
-          console.log('🧊 Sending ICE candidate:', event.candidate.type);
+          console.log('Sending ICE candidate:', event.candidate.type);
           socketRef.current.emit('ice-candidate', {
             to: peerId,
             from: socketRef.current.id!,
@@ -254,25 +254,25 @@ export default function VideoChat() {
             type: 'ice-candidate' as const
           });
         } else {
-          console.log('🧊 ICE gathering completed');
+          console.log('ICE gathering completed');
         }
       };
 
       peerConnection.onconnectionstatechange = () => {
-        console.log('🔗 Connection state:', peerConnection.connectionState);
+        console.log('Connection state:', peerConnection.connectionState);
         if (peerConnection.connectionState === 'connected') {
-          console.log('🎉 WebRTC connection established successfully!');
+          console.log('WebRTC connection established successfully!');
         } else if (peerConnection.connectionState === 'failed') {
-          console.error('❌ WebRTC connection failed');
+          console.error('WebRTC connection failed');
         }
       };
 
       peerConnection.oniceconnectionstatechange = () => {
-        console.log('🧊 ICE connection state:', peerConnection.iceConnectionState);
+        console.log('ICE connection state:', peerConnection.iceConnectionState);
       };
 
       peerConnection.onicegatheringstatechange = () => {
-        console.log('📡 ICE gathering state:', peerConnection.iceGatheringState);
+        console.log('ICE gathering state:', peerConnection.iceGatheringState);
       };
 
       // Create offer if initiator
@@ -355,93 +355,103 @@ export default function VideoChat() {
   };
 
   return (
-   <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-950 to-gray-900 text-white font-inter">
-  {/* Header */}
-  <header className="w-full py-6 shadow-lg bg-gradient-to-b from-slate-900 to-transparent">
-    <h1 className="text-4xl font-extrabold text-center tracking-tight text-blue-400">
-      StrangerLoop <span className="text-white font-light">— Random Video Chat</span>
-    </h1>
-    <p className="text-center text-blue-300 text-md mt-2">Connect, chat, and meet new people instantly.</p>
-  </header>
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
+     
+      <header className="border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-sm">
+        <div className="container mx-auto px-4 py-4">
+          <h1 className="text-2xl font-bold text-center text-zinc-100">
+            StrangerLoop
+          </h1>
+          <p className="text-center text-zinc-400 text-sm mt-1">
+            Connect with random strangers
+          </p>
+        </div>
+      </header>
 
-  {/* Main Layout */}
-  <main className="flex-1 container mx-auto grid lg:grid-cols-2 gap-8 px-4 py-8">
-    {/* Local Video Card */}
-    <div className="relative group bg-black rounded-xl overflow-hidden shadow-xl aspect-video border-4 border-blue-700">
-      <video
-        ref={localVideoRef}
-        autoPlay
-        muted
-        playsInline
-        className="w-full h-full object-cover transition group-hover:scale-105 duration-300"
-      />
-      <div className="absolute bottom-4 left-4 bg-blue-700/60 px-4 py-2 rounded-xl text-lg font-semibold shadow-lg">
-        <span className="inline-flex items-center gap-2"><span className="text-green-400 animate-pulse">●</span> You</span>
-      </div>
-      <div className="absolute top-4 right-4 bg-black/70 px-2 py-1 rounded text-xs text-blue-300">
-        Your Camera
+      <div className="flex-1 flex flex-col lg:flex-row">
+       
+        <div className="flex-1 lg:flex-[2] p-4">
+          <div className="relative bg-zinc-900 rounded-lg overflow-hidden h-full border border-zinc-700">
+            <video
+              ref={remoteVideoRef}
+              autoPlay
+              playsInline
+              muted={false}
+              controls={false}
+              className="w-full h-full object-cover"
+              onLoadedMetadata={() => console.log('Remote video metadata loaded')}
+              onCanPlay={() => console.log('Remote video can play')}
+              onPlay={() => console.log('Remote video started playing')}
+              onError={(e) => console.error('Remote video error:', e)}
+            />
+            
+            {isWaiting && (
+              <div className="absolute inset-0 bg-zinc-900/90 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-zinc-600 border-t-zinc-300 mx-auto mb-4"></div>
+                  <p className="text-zinc-300 font-medium">Looking for a stranger...</p>
+                  <p className="text-zinc-500 text-sm mt-1">Please wait</p>
+                </div>
+              </div>
+            )}
+            
+            {!partnerId && !isWaiting && (
+              <div className="absolute inset-0 bg-zinc-900/90 flex items-center justify-center">
+                <div className="text-center">
+                  <p className="text-zinc-300 text-lg font-medium">Ready to connect</p>
+                  <p className="text-zinc-500 text-sm mt-1">Click "Find Match" to start</p>
+                </div>
+              </div>
+            )}
+            
+            {partnerId && !hasRemoteStream && (
+              <div className="absolute inset-0 bg-zinc-900/90 flex items-center justify-center">
+                <div className="text-center">
+                  <p className="text-zinc-300 text-lg font-medium">Connected to stranger</p>
+                  <p className="text-zinc-500 text-sm mt-1">Waiting for video stream...</p>
+                </div>
+              </div>
+            )}
+            
+            {partnerId && (
+              <div className="absolute bottom-4 left-4 bg-zinc-800/80 px-3 py-1 rounded-md backdrop-blur-sm">
+                <span className="text-zinc-300 text-sm font-medium">Stranger</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="lg:flex-1 p-4 flex flex-col">
+          
+          <div className="relative bg-zinc-900 rounded-lg overflow-hidden aspect-video mb-4 border border-zinc-700">
+            <video
+              ref={localVideoRef}
+              autoPlay
+              muted
+              playsInline
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute bottom-4 left-4 bg-zinc-800/80 px-3 py-1 rounded-md backdrop-blur-sm">
+              <span className="text-zinc-300 text-sm font-medium">You</span>
+            </div>
+          </div>
+
+          <div className="flex-1">
+            <Controls
+              onFindMatch={findMatch}
+              onSkip={skipPartner}
+              onToggleMute={toggleMute}
+              onToggleVideo={toggleVideo}
+              onSendMessage={sendMessage}
+              isMuted={isMuted}
+              isVideoOff={isVideoOff}
+              hasPartner={!!partnerId}
+              messages={messages}
+            />
+          </div>
+        </div>
       </div>
     </div>
-
-    {/* Remote Video Card */}
-    <div className="relative group bg-black rounded-xl overflow-hidden shadow-xl aspect-video border-1 ">
-      <video
-        ref={remoteVideoRef}
-        autoPlay
-        playsInline
-        muted={false}
-        controls={false}
-        className="w-full h-full object-cover transition group-hover:scale-105 duration-300"
-        onLoadedMetadata={() => console.log('📺 Remote video metadata loaded')}
-        onCanPlay={() => console.log('📺 Remote video can play')}
-        onPlay={() => console.log('📺 Remote video started playing')}
-        onError={(e) => console.error('📺 Remote video error:', e)}
-      />
-      {isWaiting && (
-        <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center">
-          <span className="animate-spin border-1  rounded-full h-10 w-10 mb-6"></span>
-          <p className="text-lg font-semibold text-blue-300">Looking for a stranger...</p>
-        </div>
-      )}
-      {!partnerId && !isWaiting && (
-        <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center">
-          <p className="text-lg font-semibold text-fuchsia-200">Click "Find Match" to start</p>
-        </div>
-      )}
-      {partnerId && !hasRemoteStream && (
-        <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center">
-          <p className="text-lg font-bold text-fuchsia-200">Connected!</p>
-          <p className="text-base text-gray-300 mt-1">Waiting for stream…</p>
-          <p className="text-xs text-gray-400 mt-2 italic">Check your camera permissions</p>
-        </div>
-      )}
-      {partnerId && (
-        <div className="absolute bottom-4 left-4 bg-fuchsia-600/80 px-4 py-2 rounded-xl text-lg font-semibold shadow-lg">
-          Stranger
-        </div>
-      )}
-      <div className="absolute top-4 right-4 bg-black/70 px-2 py-1 rounded text-xs text-fuchsia-200">
-        Stranger's Camera
-      </div>
-    </div>
-  </main>
-
-  {/* Controls and Chat */}
-  <section className="container mx-auto mb-8 px-4">
-    <Controls
-      onFindMatch={findMatch}
-      onSkip={skipPartner}
-      onToggleMute={toggleMute}
-      onToggleVideo={toggleVideo}
-      onSendMessage={sendMessage}
-      isMuted={isMuted}
-      isVideoOff={isVideoOff}
-      hasPartner={!!partnerId}
-      messages={messages}
-      
-    />
-  </section>
-</div>
 
   );
 }

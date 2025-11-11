@@ -47,8 +47,47 @@ app.get('/health', (req: Request, res: Response) => {
   });
 });
 
+// New endpoint for live user statistics
+app.get('/stats', (req: Request, res: Response) => {
+  const stats = {
+    totalConnected: io.engine.clientsCount,
+    usersInQueue: matchingQueue.getWaitingCount(),
+    activeChats: matchingQueue.getActiveCount(),
+    totalActiveUsers: matchingQueue.getWaitingCount() + (matchingQueue.getActiveCount() * 2),
+    timestamp: new Date().toISOString()
+  };
+  
+  res.json(stats);
+});
+
+// Function to broadcast live stats to all connected clients
+const broadcastStats = () => {
+  const stats = {
+    totalConnected: io.engine.clientsCount,
+    usersInQueue: matchingQueue.getWaitingCount(),
+    activeChats: matchingQueue.getActiveCount(),
+    totalActiveUsers: matchingQueue.getWaitingCount() + (matchingQueue.getActiveCount() * 2),
+    timestamp: new Date().toISOString()
+  };
+  
+  io.emit('live-stats', stats);
+};
+
 io.on('connection', (socket: Socket) => {
   console.log(`User connected: ${socket.id}`);
+  
+  // Send current stats to newly connected user
+  const currentStats = {
+    totalConnected: io.engine.clientsCount,
+    usersInQueue: matchingQueue.getWaitingCount(),
+    activeChats: matchingQueue.getActiveCount(),
+    totalActiveUsers: matchingQueue.getWaitingCount() + (matchingQueue.getActiveCount() * 2),
+    timestamp: new Date().toISOString()
+  };
+  socket.emit('live-stats', currentStats);
+  
+  // Broadcast updated stats to all users
+  broadcastStats();
 
   socket.on('find-match', () => {
     console.log(`\n=== FIND MATCH REQUEST ===`);
@@ -70,7 +109,30 @@ io.on('connection', (socket: Socket) => {
       socket.emit('waiting');
       console.log(`User ${socket.id} added to waiting queue (size: ${matchingQueue.getWaitingCount()})`);
     }
+    
+    // Broadcast updated stats after match attempt
+    broadcastStats();
     console.log(`=== END FIND MATCH ===\n`);
+  });
+
+  socket.on('stop-match', () => {
+    console.log(`\n=== STOP MATCH REQUEST ===`);
+    console.log(`User ${socket.id} stopping search...`);
+    
+    const wasInQueue = matchingQueue.removeUser(socket.id);
+    
+    if (wasInQueue) {
+      console.log(`User ${socket.id} removed from waiting queue`);
+      console.log(`New queue size: ${matchingQueue.getWaitingCount()}`);
+    } else {
+      console.log(`User ${socket.id} was not in queue`);
+    }
+    
+    socket.emit('search-stopped');
+    
+    // Broadcast updated stats after stopping search
+    broadcastStats();
+    console.log(`=== END STOP MATCH ===\n`);
   });
 
   socket.on('offer', (data: SignalingData) => {
@@ -146,6 +208,9 @@ io.on('connection', (socket: Socket) => {
     if (partnerId) {
       io.to(partnerId).emit('partner-disconnected');
     }
+    
+    // Broadcast updated stats after user disconnects
+    broadcastStats();
   });
 });
 

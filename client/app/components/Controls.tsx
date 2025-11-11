@@ -5,6 +5,7 @@ import { ChatMessage } from '../types/types';
 
 interface ControlsProps {
   onFindMatch: () => void;
+  onStopMatch: () => void;
   onSkip: () => void;
   onToggleMute: () => void;
   onToggleVideo: () => void;
@@ -12,11 +13,13 @@ interface ControlsProps {
   isMuted: boolean;
   isVideoOff: boolean;
   hasPartner: boolean;
+  isWaiting: boolean;
   messages: ChatMessage[];
 }
 
 export default function Controls({
   onFindMatch,
+  onStopMatch,
   onSkip,
   onToggleMute,
   onToggleVideo,
@@ -24,6 +27,7 @@ export default function Controls({
   isMuted,
   isVideoOff,
   hasPartner,
+  isWaiting,
   messages
 }: ControlsProps) {
   const [messageInput, setMessageInput] = useState('');
@@ -39,20 +43,36 @@ export default function Controls({
     <div className="space-y-4">
       
       <div className="flex flex-wrap gap-2 justify-center">
-        <button
-          onClick={onFindMatch}
-          className="px-4 py-2 bg-zinc-200 hover:bg-zinc-300 text-zinc-900 rounded-md font-medium transition-colors"
-        >
-          Find Match
-        </button>
+        {!isWaiting && !hasPartner ? (
+          <button
+            onClick={onFindMatch}
+            className="px-4 py-2 bg-zinc-600 hover:bg-zinc-700 text-white rounded-md font-medium transition-colors"
+          >
+            Find Match
+          </button>
+        ) : isWaiting ? (
+          <button
+            onClick={onStopMatch}
+            className="px-4 py-2 bg-zinc-600 hover:bg-zinc-700 text-white rounded-md font-medium transition-colors"
+          >
+            Stop Search
+          </button>
+        ) : (
+          <button
+            onClick={onFindMatch}
+            className="px-4 py-2 bg-zinc-600 hover:bg-zinc-700 text-white rounded-md font-medium transition-colors"
+          >
+            Find New Match
+          </button>
+        )}
 
-        <button
+        {/* <button
           onClick={onSkip}
           disabled={!hasPartner}
           className="px-4 py-2 bg-zinc-700 hover:bg-zinc-600 text-zinc-300 rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Next
-        </button>
+        </button> */}
 
         <button
           onClick={onToggleMute}

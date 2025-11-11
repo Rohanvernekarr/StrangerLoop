@@ -1,6 +1,6 @@
 import { io, Socket } from 'socket.io-client';
 
-const SOCKET_URL = 'https://strangerloop-1.onrender.com';
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000';
 
 let socket: Socket | null = null;
 
@@ -17,11 +17,11 @@ export const getSocket = (): Socket => {
     
     // Add connection debugging
     socket.on('connect', () => {
-      console.log('✅ Socket connected successfully:', socket?.id);
+      console.log('Socket connected successfully:', socket?.id);
     });
     
     socket.on('connect_error', (error) => {
-      console.error('❌ Socket connection error:', error.message);
+      console.error(' Socket connection error:', error.message);
       console.error('Error details:', error);
     });
     

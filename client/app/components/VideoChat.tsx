@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { getSocket } from '../lib/socket';
 import { SignalingData, ChatMessage } from '../types/types';
 import Controls from './Controls';
+import Link from 'next/link';
 
 const ICE_SERVERS = {
   iceServers: [
@@ -20,6 +21,12 @@ export default function VideoChat() {
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoOff, setIsVideoOff] = useState(false);
   const [hasRemoteStream, setHasRemoteStream] = useState(false);
+  const [liveStats, setLiveStats] = useState({
+    totalConnected: 0,
+    usersInQueue: 0,
+    activeChats: 0,
+    totalActiveUsers: 0
+  });
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -32,7 +39,6 @@ export default function VideoChat() {
     const socket = socketRef.current;
 
     const initMedia = async () => {
-      // Connect socket first, regardless of media access
       console.log('Attempting to connect to socket server...');
       socket.connect();
       
@@ -66,21 +72,19 @@ export default function VideoChat() {
       } catch (error) {
         console.log('Media access denied, creating dummy video stream');
         
-        // Create a canvas-based dummy video stream for testing
         try {
           const canvas = document.createElement('canvas');
           canvas.width = 640;
           canvas.height = 480;
           const ctx = canvas.getContext('2d');
           
-          // Draw a simple pattern
           if (ctx) {
             
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = 'white';
             ctx.font = '48px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText('No Camera', canvas.width/2, canvas.height/2);
+            ctx.fillText('0/0/0', canvas.width/2, canvas.height/2);
           }
           
           const dummyStream = canvas.captureStream(30);
@@ -105,6 +109,17 @@ export default function VideoChat() {
       console.log('Waiting for match...');
       setIsWaiting(true);
       setPartnerId(null);
+    });
+
+    socket.on('search-stopped', () => {
+      console.log('Search stopped by user');
+      setIsWaiting(false);
+      setPartnerId(null);
+    });
+
+    socket.on('live-stats', (stats) => {
+      console.log('Live stats updated:', stats);
+      setLiveStats(stats);
     });
 
     socket.on('match-found', ({ partnerId: newPartnerId, shouldInitiate }) => {
@@ -192,6 +207,8 @@ export default function VideoChat() {
 
     return () => {
       socket.off('waiting');
+      socket.off('search-stopped');
+      socket.off('live-stats');
       socket.off('match-found');
       socket.off('offer');
       socket.off('answer');
@@ -331,6 +348,17 @@ export default function VideoChat() {
     console.log('find-match event emitted');
   };
 
+  const stopMatch = () => {
+    console.log('Stop Match clicked');
+    setIsWaiting(false);
+    setPartnerId(null);
+    closePeerConnection();
+    setMessages([]);
+    // Emit stop-match event to server to remove from queue
+    socketRef.current.emit('stop-match');
+    console.log('stop-match event emitted');
+  };
+
   const skipPartner = () => {
     closePeerConnection();
     setMessages([]);
@@ -373,16 +401,48 @@ export default function VideoChat() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
      
-      <header className="border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4">
-          <h1 className="text-2xl font-bold text-center text-zinc-100">
-            StrangerLoop
-          </h1>
-          <p className="text-center text-zinc-400 text-sm mt-1">
-            Connect with random strangers
-          </p>
-        </div>
-      </header>
+     <header className="border-b border-zinc-800 bg-zinc-900/60 backdrop-blur-lg">
+  <div className="flex flex-col lg:flex-row items-center justify-between mx-auto px-4 py-5  w-full">
+    <div className="flex-1 text-left">
+      <h1 className="text-2xl lg:text-3xl font-extrabold text-zinc-100 tracking-tight leading-snug">
+        StrangerLoop
+      </h1>
+      <p className="text-zinc-400 text-base mt-1">
+        Connect with random strangers.
+      </p>
+    </div>
+
+    <div className="flex items-center gap-6 mt-5 lg:mt-0">
+     
+      
+      <Link
+        href="/terms"
+        className="text-sm text-zinc-400 hover:text-zinc-100 transition font-medium underline underline-offset-2"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Terms
+      </Link>
+      <Link
+        href="/rules"
+        className="text-sm text-zinc-400 hover:text-zinc-100 transition font-medium underline underline-offset-2"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        Rules
+      </Link>
+
+      <div className="bg-zinc-800/80 border border-zinc-700 px-3 py-2 rounded-lg flex items-center gap-2 shadow-sm">
+        <span className="text-zinc-400 text-xs font-medium  tracking-wide">Live Users</span>
+        <span className="text-zinc-100 text-sm font-bold tabular-nums">
+            {liveStats.totalActiveUsers}
+        </span>
+      
+      </div>
+    </div>
+  </div>
+</header>
+
 
       <div className="flex-1 flex flex-col lg:flex-row">
        
@@ -394,7 +454,7 @@ export default function VideoChat() {
               playsInline
               muted={false}
               controls={false}
-              className="w-full  object-cover"
+              className="w-full  object-cover scale-x-[-1]"
               onLoadedMetadata={() => console.log('Remote video metadata loaded')}
               onCanPlay={() => console.log('Remote video can play')}
               onPlay={() => console.log('Remote video started playing')}
@@ -445,7 +505,7 @@ export default function VideoChat() {
               autoPlay
               muted
               playsInline
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover scale-x-[-1]"
             />
             <div className="absolute bottom-4 left-4 bg-zinc-800/80 px-3 py-1 rounded-md backdrop-blur-sm">
               <span className="text-zinc-300 text-sm font-medium">You</span>
@@ -455,6 +515,7 @@ export default function VideoChat() {
           <div className="flex-1">
             <Controls
               onFindMatch={findMatch}
+              onStopMatch={stopMatch}
               onSkip={skipPartner}
               onToggleMute={toggleMute}
               onToggleVideo={toggleVideo}
@@ -462,6 +523,7 @@ export default function VideoChat() {
               isMuted={isMuted}
               isVideoOff={isVideoOff}
               hasPartner={!!partnerId}
+              isWaiting={isWaiting}
               messages={messages}
             />
           </div>

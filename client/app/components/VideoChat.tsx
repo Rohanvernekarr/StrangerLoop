@@ -230,7 +230,6 @@ export default function VideoChat() {
           remoteVideoRef.current.srcObject = event.streams[0];
           setHasRemoteStream(true);
           
-          // Force video to play and trigger a re-render
           setTimeout(() => {
             if (remoteVideoRef.current) {
               remoteVideoRef.current.play().catch(e => console.log('Video play error:', e));
@@ -275,7 +274,6 @@ export default function VideoChat() {
         console.log('ICE gathering state:', peerConnection.iceGatheringState);
       };
 
-      // Create offer if initiator
       if (isInitiator) {
         const offer = await peerConnection.createOffer();
         await peerConnection.setLocalDescription(offer);
@@ -378,7 +376,7 @@ export default function VideoChat() {
               playsInline
               muted={false}
               controls={false}
-              className="w-full h-full object-cover"
+              className="w-full  object-cover"
               onLoadedMetadata={() => console.log('Remote video metadata loaded')}
               onCanPlay={() => console.log('Remote video can play')}
               onPlay={() => console.log('Remote video started playing')}

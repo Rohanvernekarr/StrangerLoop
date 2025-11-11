@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ChatMessage } from '../../../shared/types';
+import { ChatMessage } from '../types/types';
 
 interface ControlsProps {
   onFindMatch: () => void;

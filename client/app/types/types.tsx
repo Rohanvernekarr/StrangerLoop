@@ -8,6 +8,9 @@ export interface SignalingData {
   from: string;
   to: string;
   type: 'offer' | 'answer' | 'ice-candidate';
+  offer?: RTCSessionDescriptionInit;
+  answer?: RTCSessionDescriptionInit;
+  candidate?: RTCIceCandidateInit;
 }
 
 export interface MatchResult {

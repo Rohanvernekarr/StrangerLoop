@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { getSocket } from '../lib/socket';
-import { SignalingData, ChatMessage } from '../../../shared/types';
+import { SignalingData, ChatMessage } from '../types/types';
 import Controls from './Controls';
 
 const ICE_SERVERS = {
